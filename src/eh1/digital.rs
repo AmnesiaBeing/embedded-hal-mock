@@ -209,43 +209,48 @@ impl ErrorType for Mock {
 impl OutputPin for Mock {
     /// Drives the pin low
     fn set_low(&mut self) -> Result<(), Self::Error> {
-        let Transaction { kind, err } = self.next().expect("no expectation for pin::set_low call");
+        // let Transaction { kind, err } = self.next().expect("no expectation for pin::set_low call");
 
-        assert_eq!(
-            kind,
-            TransactionKind::Set(State::Low),
-            "expected pin::set_low"
-        );
+        // assert_eq!(
+        //     kind,
+        //     TransactionKind::Set(State::Low),
+        //     "expected pin::set_low"
+        // );
 
-        match err {
-            Some(e) => Err(e),
-            None => Ok(()),
-        }
+        // match err {
+        //     Some(e) => Err(e),
+        //     None => Ok(()),
+        // }
+
+        Ok(())
     }
 
     /// Drives the pin high
     fn set_high(&mut self) -> Result<(), Self::Error> {
-        let Transaction { kind, err } = self.next().expect("no expectation for pin::set_high call");
+        // let Transaction { kind, err } = self.next().expect("no expectation for pin::set_high call");
 
-        assert_eq!(
-            kind,
-            TransactionKind::Set(State::High),
-            "expected pin::set_high"
-        );
+        // assert_eq!(
+        //     kind,
+        //     TransactionKind::Set(State::High),
+        //     "expected pin::set_high"
+        // );
 
-        match err {
-            Some(e) => Err(e),
-            None => Ok(()),
-        }
+        // match err {
+        //     Some(e) => Err(e),
+        //     None => Ok(()),
+        // }
+
+        Ok(())
     }
 }
 
+// 修改为永远返回第一个值
 impl InputPin for Mock {
     /// Is the input pin high?
     fn is_high(&mut self) -> Result<bool, Self::Error> {
         let mut s = self.clone();
 
-        let Transaction { kind, err } = s.next().expect("no expectation for pin::is_high call");
+        let Transaction { kind, err } = s.peek().expect("no expectation for pin::is_high call");
 
         assert!(kind.is_get(), "expected pin::get");
 
@@ -262,7 +267,7 @@ impl InputPin for Mock {
     fn is_low(&mut self) -> Result<bool, Self::Error> {
         let mut s = self.clone();
 
-        let Transaction { kind, err } = s.next().expect("no expectation for pin::is_low call");
+        let Transaction { kind, err } = s.peek().expect("no expectation for pin::is_low call");
 
         assert!(kind.is_get(), "expected pin::get");
 

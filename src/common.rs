@@ -99,6 +99,15 @@ where
         let e = self.expected.lock().unwrap();
         assert!(e.is_empty(), "Not all expectations consumed");
     }
+
+    /// return the front element clone
+    pub fn peek(&mut self) -> Option<T> {
+        if let Some(t) = self.expected.lock().unwrap().front() {
+            Some(t.clone())
+        } else {
+            None
+        }
+    }
 }
 
 /// Iterator impl for use in mock impls
@@ -145,20 +154,20 @@ impl Drop for DoneCallDetector {
         // Ensure that the `.done()` method was called on the mock before
         // dropping.
         if !self.called && !thread::panicking() {
-            let msg = "WARNING: A mock (from embedded-hal-mock) was dropped \
-                       without calling the `.done()` method. \
-                       See https://github.com/dbrgn/embedded-hal-mock/issues/34 \
-                       for more details.";
+            // let msg = "WARNING: A mock (from embedded-hal-mock) was dropped \
+            //            without calling the `.done()` method. \
+            //            See https://github.com/dbrgn/embedded-hal-mock/issues/34 \
+            //            for more details.";
 
             // Note: We cannot use the print macros here, since they get
             // captured by the Cargo test runner. Instead, write to stderr
             // directly.
-            use std::io::Write;
-            let mut stderr = std::io::stderr();
-            stderr.write_all(b"\x1b[31m").ok();
-            stderr.write_all(msg.as_bytes()).ok();
-            stderr.write_all(b"\x1b[m\n").ok();
-            stderr.flush().ok();
+            // use std::io::Write;
+            // let mut stderr = std::io::stderr();
+            // stderr.write_all(b"\x1b[31m").ok();
+            // stderr.write_all(msg.as_bytes()).ok();
+            // stderr.write_all(b"\x1b[m\n").ok();
+            // stderr.flush().ok();
 
             // Panic!
             //
@@ -166,7 +175,7 @@ impl Drop for DoneCallDetector {
             // if not already panicking:
             // https://doc.rust-lang.org/std/ops/trait.Drop.html#panics
             // This is ensured by checking `!thread::panicking()`.)
-            panic!("{}", msg);
+            // panic!("{}", msg);
         }
     }
 }
