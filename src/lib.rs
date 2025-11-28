@@ -43,6 +43,7 @@
 //! - `embedded-hal-async`: Provide mocks for embedded-hal-async in [`eh1`]
 #![cfg_attr(docsrs, feature(doc_cfg), feature(doc_auto_cfg))]
 #![deny(missing_docs)]
+#![allow(unused)]
 
 pub mod common;
 #[cfg(feature = "eh0")]

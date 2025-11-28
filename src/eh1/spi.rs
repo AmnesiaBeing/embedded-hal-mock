@@ -371,7 +371,7 @@ where
     /// spi::SpiDevice implementation for Mock
     ///
     /// This writes the provided response to the buffer and will cause an assertion if the written data does not match the next expectation
-    fn transaction(&mut self, operations: &mut [Operation<'_, W>]) -> Result<(), Self::Error> {
+    fn transaction(&mut self, _operations: &mut [Operation<'_, W>]) -> Result<(), Self::Error> {
         // let w = self
         //     .next()
         //     .expect("no expectation for spi::transaction call");
