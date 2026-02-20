@@ -461,6 +461,107 @@ impl embedded_hal_async::digital::Wait for Mock {
     }
 }
 
+/// No-operation GPIO pin implementation.
+///
+/// All operations succeed without doing anything.
+/// Useful when you want to ignore pin state changes.
+pub mod no_pin {
+    use eh1 as embedded_hal;
+    use embedded_hal::digital::{ErrorType, InputPin, OutputPin, StatefulOutputPin};
+
+    use super::{MockError, State};
+
+    /// No-operation GPIO pin implementation.
+    #[derive(Debug)]
+    pub struct NoPin {
+        state: State,
+    }
+
+    impl NoPin {
+        /// Create a new NoPin with the specified state.
+        pub fn new(state: State) -> Self {
+            Self { state }
+        }
+
+        /// Create a new NoPin that always returns high.
+        pub fn high() -> Self {
+            Self { state: State::High }
+        }
+
+        /// Create a new NoPin that always returns low.
+        pub fn low() -> Self {
+            Self { state: State::Low }
+        }
+    }
+
+    impl Default for NoPin {
+        fn default() -> Self {
+            Self::low()
+        }
+    }
+
+    impl ErrorType for NoPin {
+        type Error = MockError;
+    }
+
+    impl OutputPin for NoPin {
+        fn set_low(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn set_high(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+    }
+
+    impl InputPin for NoPin {
+        fn is_high(&mut self) -> Result<bool, Self::Error> {
+            Ok(self.state == State::High)
+        }
+
+        fn is_low(&mut self) -> Result<bool, Self::Error> {
+            Ok(self.state == State::Low)
+        }
+    }
+
+    impl StatefulOutputPin for NoPin {
+        fn toggle(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+            Ok(self.state == State::High)
+        }
+
+        fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+            Ok(self.state == State::Low)
+        }
+    }
+
+    #[cfg(feature = "embedded-hal-async")]
+    impl embedded_hal_async::digital::Wait for NoPin {
+        async fn wait_for_high(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        async fn wait_for_low(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        async fn wait_for_rising_edge(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        async fn wait_for_falling_edge(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        async fn wait_for_any_edge(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::io::ErrorKind;
@@ -681,5 +782,74 @@ mod test {
         pin.wait_for_rising_edge().await.unwrap();
 
         pin.done();
+    }
+
+    #[test]
+    fn test_no_pin_output_high() {
+        use embedded_hal::digital::OutputPin;
+
+        let mut pin = no_pin::NoPin::high();
+        pin.set_high().unwrap();
+        pin.set_low().unwrap();
+    }
+
+    #[test]
+    fn test_no_pin_output_low() {
+        use embedded_hal::digital::OutputPin;
+
+        let mut pin = no_pin::NoPin::low();
+        pin.set_high().unwrap();
+        pin.set_low().unwrap();
+    }
+
+    #[test]
+    fn test_no_pin_input_high() {
+        use embedded_hal::digital::InputPin;
+
+        let mut pin = no_pin::NoPin::high();
+        assert!(pin.is_high().unwrap());
+        assert!(!pin.is_low().unwrap());
+    }
+
+    #[test]
+    fn test_no_pin_input_low() {
+        use embedded_hal::digital::InputPin;
+
+        let mut pin = no_pin::NoPin::low();
+        assert!(!pin.is_high().unwrap());
+        assert!(pin.is_low().unwrap());
+    }
+
+    #[test]
+    fn test_no_pin_stateful_high() {
+        use embedded_hal::digital::StatefulOutputPin;
+
+        let mut pin = no_pin::NoPin::high();
+        pin.toggle().unwrap();
+        assert!(pin.is_set_high().unwrap());
+        assert!(!pin.is_set_low().unwrap());
+    }
+
+    #[test]
+    fn test_no_pin_stateful_low() {
+        use embedded_hal::digital::StatefulOutputPin;
+
+        let mut pin = no_pin::NoPin::low();
+        pin.toggle().unwrap();
+        assert!(!pin.is_set_high().unwrap());
+        assert!(pin.is_set_low().unwrap());
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "embedded-hal-async")]
+    async fn test_no_pin_wait() {
+        use embedded_hal_async::digital::Wait;
+
+        let mut pin = no_pin::NoPin::high();
+        pin.wait_for_high().await.unwrap();
+        pin.wait_for_low().await.unwrap();
+        pin.wait_for_rising_edge().await.unwrap();
+        pin.wait_for_falling_edge().await.unwrap();
+        pin.wait_for_any_edge().await.unwrap();
     }
 }

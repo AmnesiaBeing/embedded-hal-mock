@@ -474,6 +474,101 @@ where
     }
 }
 
+/// No-operation SPI bus implementation.
+///
+/// All operations succeed without doing anything.
+/// Useful when you want to ignore SPI communication.
+pub mod no_spi {
+    use eh1::spi::{self, Operation, SpiBus, SpiDevice};
+    use embedded_hal_nb::{nb, spi::FullDuplex};
+
+    /// No-operation SPI bus implementation.
+    #[derive(Debug, Default)]
+    pub struct NoSpi;
+
+    impl NoSpi {
+        /// Create a new NoSpi instance.
+        pub fn new() -> Self {
+            Self
+        }
+    }
+
+    impl spi::ErrorType for NoSpi {
+        type Error = spi::ErrorKind;
+    }
+
+    impl<W: Default + Copy + 'static> SpiBus<W> for NoSpi {
+        fn read(&mut self, buffer: &mut [W]) -> Result<(), Self::Error> {
+            buffer.fill(W::default());
+            Ok(())
+        }
+
+        fn write(&mut self, _buffer: &[W]) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn transfer(&mut self, read: &mut [W], _write: &[W]) -> Result<(), Self::Error> {
+            read.fill(W::default());
+            Ok(())
+        }
+
+        fn transfer_in_place(&mut self, buffer: &mut [W]) -> Result<(), Self::Error> {
+            buffer.fill(W::default());
+            Ok(())
+        }
+
+        fn flush(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+    }
+
+    impl<W: Default + Copy + 'static> SpiDevice<W> for NoSpi {
+        fn transaction(&mut self, _operations: &mut [Operation<'_, W>]) -> Result<(), Self::Error> {
+            Ok(())
+        }
+    }
+
+    impl<W: Default + Copy + 'static> FullDuplex<W> for NoSpi {
+        fn write(&mut self, _word: W) -> nb::Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn read(&mut self) -> nb::Result<W, Self::Error> {
+            Ok(W::default())
+        }
+    }
+
+    #[cfg(feature = "embedded-hal-async")]
+    impl<W: Default + Copy + 'static> embedded_hal_async::spi::SpiBus<W> for NoSpi {
+        async fn read(&mut self, words: &mut [W]) -> Result<(), Self::Error> {
+            SpiBus::read(self, words)
+        }
+
+        async fn write(&mut self, words: &[W]) -> Result<(), Self::Error> {
+            SpiBus::write(self, words)
+        }
+
+        async fn transfer(&mut self, read: &mut [W], write: &[W]) -> Result<(), Self::Error> {
+            SpiBus::transfer(self, read, write)
+        }
+
+        async fn transfer_in_place(&mut self, words: &mut [W]) -> Result<(), Self::Error> {
+            SpiBus::transfer_in_place(self, words)
+        }
+
+        async fn flush(&mut self) -> Result<(), Self::Error> {
+            SpiBus::<W>::flush(self)
+        }
+    }
+
+    #[cfg(feature = "embedded-hal-async")]
+    impl<W: Default + Copy + 'static> embedded_hal_async::spi::SpiDevice<W> for NoSpi {
+        async fn transaction(&mut self, operations: &mut [Operation<'_, W>]) -> Result<(), Self::Error> {
+            SpiDevice::transaction(self, operations)
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -796,5 +891,102 @@ mod test {
         .unwrap();
 
         spi.done();
+    }
+
+    #[test]
+    fn test_no_spi_write() {
+        use eh1::spi::SpiBus;
+
+        let mut spi = no_spi::NoSpi::new();
+        SpiBus::write(&mut spi, &[1, 2, 3]).unwrap();
+    }
+
+    #[test]
+    fn test_no_spi_read() {
+        use eh1::spi::SpiBus;
+
+        let mut spi = no_spi::NoSpi::new();
+        let mut buf = [0u8; 3];
+        SpiBus::read(&mut spi, &mut buf).unwrap();
+        assert_eq!(buf, [0, 0, 0]);
+    }
+
+    #[test]
+    fn test_no_spi_transfer() {
+        use eh1::spi::SpiBus;
+
+        let mut spi = no_spi::NoSpi::new();
+        let mut buf = [1u8, 2, 3];
+        SpiBus::transfer(&mut spi, &mut buf, &[4, 5, 6]).unwrap();
+        assert_eq!(buf, [0, 0, 0]);
+    }
+
+    #[test]
+    fn test_no_spi_transfer_in_place() {
+        use eh1::spi::SpiBus;
+
+        let mut spi = no_spi::NoSpi::new();
+        let mut buf = [1u8, 2, 3];
+        SpiBus::transfer_in_place(&mut spi, &mut buf).unwrap();
+        assert_eq!(buf, [0, 0, 0]);
+    }
+
+    #[test]
+    fn test_no_spi_flush() {
+        use eh1::spi::SpiBus;
+
+        let mut spi = no_spi::NoSpi::new();
+        SpiBus::<u8>::flush(&mut spi).unwrap();
+    }
+
+    #[test]
+    fn test_no_spi_full_duplex_write() {
+        use embedded_hal_nb::spi::FullDuplex;
+
+        let mut spi = no_spi::NoSpi::new();
+        FullDuplex::<u8>::write(&mut spi, 42).unwrap();
+    }
+
+    #[test]
+    fn test_no_spi_full_duplex_read() {
+        use embedded_hal_nb::spi::FullDuplex;
+
+        let mut spi = no_spi::NoSpi::new();
+        let val: u8 = FullDuplex::read(&mut spi).unwrap();
+        assert_eq!(val, 0);
+    }
+
+    #[test]
+    fn test_no_spi_transaction() {
+        use eh1::spi::SpiDevice;
+
+        let mut spi = no_spi::NoSpi::new();
+        SpiDevice::<u8>::transaction(&mut spi, &mut []).unwrap();
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "embedded-hal-async")]
+    async fn test_no_spi_async() {
+        use embedded_hal_async::spi::{SpiBus, SpiDevice};
+
+        let mut spi = no_spi::NoSpi::new();
+
+        let mut buf = [0u8; 3];
+        SpiBus::read(&mut spi, &mut buf).await.unwrap();
+        assert_eq!(buf, [0, 0, 0]);
+
+        SpiBus::write(&mut spi, &[1, 2, 3]).await.unwrap();
+
+        let mut buf = [1u8, 2, 3];
+        SpiBus::transfer(&mut spi, &mut buf, &[4, 5, 6]).await.unwrap();
+        assert_eq!(buf, [0, 0, 0]);
+
+        let mut buf = [1u8, 2, 3];
+        SpiBus::transfer_in_place(&mut spi, &mut buf).await.unwrap();
+        assert_eq!(buf, [0, 0, 0]);
+
+        SpiBus::<u8>::flush(&mut spi).await.unwrap();
+
+        embedded_hal_async::spi::SpiDevice::<u8>::transaction(&mut spi, &mut []).await.unwrap();
     }
 }
