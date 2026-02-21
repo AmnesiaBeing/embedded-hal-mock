@@ -563,7 +563,10 @@ pub mod no_spi {
 
     #[cfg(feature = "embedded-hal-async")]
     impl<W: Default + Copy + 'static> embedded_hal_async::spi::SpiDevice<W> for NoSpi {
-        async fn transaction(&mut self, operations: &mut [Operation<'_, W>]) -> Result<(), Self::Error> {
+        async fn transaction(
+            &mut self,
+            operations: &mut [Operation<'_, W>],
+        ) -> Result<(), Self::Error> {
             SpiDevice::transaction(self, operations)
         }
     }
@@ -978,7 +981,9 @@ mod test {
         SpiBus::write(&mut spi, &[1, 2, 3]).await.unwrap();
 
         let mut buf = [1u8, 2, 3];
-        SpiBus::transfer(&mut spi, &mut buf, &[4, 5, 6]).await.unwrap();
+        SpiBus::transfer(&mut spi, &mut buf, &[4, 5, 6])
+            .await
+            .unwrap();
         assert_eq!(buf, [0, 0, 0]);
 
         let mut buf = [1u8, 2, 3];
@@ -987,6 +992,8 @@ mod test {
 
         SpiBus::<u8>::flush(&mut spi).await.unwrap();
 
-        embedded_hal_async::spi::SpiDevice::<u8>::transaction(&mut spi, &mut []).await.unwrap();
+        embedded_hal_async::spi::SpiDevice::<u8>::transaction(&mut spi, &mut [])
+            .await
+            .unwrap();
     }
 }
